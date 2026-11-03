@@ -1,0 +1,21 @@
+# 构建产物
+build/
+cmake-build-*/
+*.elf
+*.hex
+*.bin
+*.map
+
+# IDE
+.idea/
+.vs/
+*.iml
+
+# 厂商烧录工具（二进制，不入库）
+FlyMcu.exe
+FlyMcuConfig.ini
+
+# 系统
+Thumbs.db
+desktop.ini
+*.log
