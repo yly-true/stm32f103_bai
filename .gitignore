@@ -11,8 +11,7 @@ cmake-build-*/
 .vs/
 *.iml
 
-# 厂商烧录工具（二进制，不入库）
-FlyMcu.exe
+# 厂商烧录工具：exe 入库，运行时生成的配置不入库
 FlyMcuConfig.ini
 
 # 系统
