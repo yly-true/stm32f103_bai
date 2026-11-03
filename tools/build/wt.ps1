@@ -76,7 +76,7 @@ function Test-AsciiPath([string]$Path) {
 
 # ------------------------------------------------------------ 工具链解析 ---
 # 在陌生电脑上自动安装固定版本；便携工具只加入当前进程 PATH。
-& (Join-Path $Root 'tools\download\setup-toolchain.ps1') -InstallOnly -Quiet:$Quiet
+& (Join-Path $Root 'tools\download\setup-toolchain.ps1') -Quiet:$Quiet
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $required = @{

@@ -1,5 +1,5 @@
 @echo off
-rem Install the portable toolchain and build. No administrator access required.
+rem Configure the portable toolchain. Build separately with tools/build/wt.cmd.
 setlocal
 where pwsh >nul 2>nul
 if errorlevel 1 goto :legacy

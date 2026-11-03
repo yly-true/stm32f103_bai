@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    一键配置 STM32 编译环境；默认配置完成后编译当前工程。
+    一键下载并配置 STM32 编译环境，不执行编译。
 .DESCRIPTION
     支持 Windows 10/11 x64、PowerShell 5.1 或更高版本，无需管理员权限。
     自动下载并校验 CMake、Arm GCC/G++、GNU Make，解压并验证工具版本和必要文件。
@@ -12,22 +12,15 @@
 .PARAMETER ToolsDir
     可选的工具安装目录，必须是可写的 ASCII 路径，例如 D:\WheeltecTool。
     路径记录在工程根目录 .wt-toolchain.json，复制工程到新电脑后失效路径会被忽略。
-.PARAMETER InstallOnly
-    只安装并验证工具，不编译。编译脚本也使用此参数检查环境。
-.PARAMETER Mode
-    编译类型：Debug（默认）、Release、RelWithDebInfo 或 MinSizeRel。
 .PARAMETER Quiet
     隐藏已有工具的检查信息；下载、解压和错误仍会显示。
 .EXAMPLE
     .\tools\download\setup-toolchain.cmd
-    自动配置环境并完成 Debug 编译。
+    自动下载安装并配置工具链；编译使用 .\tools\build\wt.cmd。
 #>
 [CmdletBinding()]
 param(
     [string]$ToolsDir,
-    [switch]$InstallOnly,
-    [ValidateSet('Debug', 'Release', 'RelWithDebInfo', 'MinSizeRel')]
-    [string]$Mode = 'Debug',
     [switch]$Quiet
 )
 
@@ -176,11 +169,7 @@ try {
     $json = @{ ToolsDir = $ToolsDir } | ConvertTo-Json
     [IO.File]::WriteAllText($configFile + '.tmp', $json, (New-Object Text.UTF8Encoding($false)))
     Move-Item -LiteralPath ($configFile + '.tmp') -Destination $configFile -Force
-    if (-not $InstallOnly) {
-        & (Join-Path $Root 'tools\build\wt.ps1') -Mode $Mode -Quiet:$Quiet
-        exit $LASTEXITCODE
-    }
-    if (-not $Quiet) { Write-Host "Toolchain ready. Run .\wt to build." }
+    if (-not $Quiet) { Write-Host "Toolchain ready. Run .\tools\build\wt.cmd to build." }
     exit 0
 } catch {
     Write-Host ('Toolchain setup failed: ' + $_.Exception.Message) -ForegroundColor Red

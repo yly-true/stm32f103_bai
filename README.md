@@ -31,15 +31,23 @@ build/                   自动生成的固件与缓存，不入库
 
 ## 编译与烧录
 
-Windows 10/11 x64，在工程目录只需运行：
+Windows 10/11 x64，在工程目录操作。
+
+**首次配置环境（只下载和配置）：**
 
 ```powershell
 .\tools\download\setup-toolchain.cmd
 ```
 
-自动完成 **CMake、Arm GCC/G++、GNU Make 的下载安装、环境配置和 Debug 编译**。无需参数或手动设置 PATH，重复运行会复用已有工具。
+自动配置 CMake、Arm GCC/G++ 和 GNU Make，无需参数或手动设置 PATH。首次需联网，无需管理员权限，也不需要预装 Python、Conda 或 IDE。
 
-首次需联网下载约 360 MB，无需管理员权限，也不需要预装 CMake、Python、Conda 或 IDE。固件生成在 `build/`。
+**编译：**
+
+```powershell
+.\tools\build\wt.cmd
+```
+
+默认 Debug，固件生成在 `build/`；已有工具会自动复用。
 
 FlyMcu 烧录 `build/WHEELTEC.hex`：BOOT0=1、BOOT1=0 后复位进入 ISP；烧完将 BOOT0 改回 0，再复位运行。
 
