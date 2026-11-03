@@ -216,6 +216,15 @@ void TIM1_UP_IRQHandler(void)
 
 
 /* USER CODE BEGIN 1 */
+void DMA1_Channel4_IRQHandler(void)
+{
+    HAL_DMA_IRQHandler(&hdma_usart1_tx);
+}
+
+void USART1_IRQHandler(void)
+{
+    HAL_UART_IRQHandler(&huart1);
+}
 
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

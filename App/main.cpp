@@ -4,26 +4,18 @@
  *
  *   main()
  *     ├─ HAL_Init / 时钟 / JTAG
- *     ├─ 外设初始化（GPIO、TIM3 PWM、TIM4 编码器、USART1、ADC1/2、TIM1 节拍、OLED）
- *     └─ for (;;) app::Control::instance().controlLoop();
+ *     ├─ 外设初始化（GPIO、TIM3 PWM、TIM4 编码器、USART1、ADC1/2、TIM1 节拍）
+ *     └─ for (;;) app::Control::controlLoop();
  *
- * 所有控制逻辑、模式切换、显示刷新都在 app::Control 内部，
- * 中断回调只负责置标志（见 App/Control.cpp），因此这里看不到任何业务代码。
+ * 所有控制逻辑、模式切换都在 app::Control 内部，
+ * 中断回调只负责置标志（见 App/Control/Control.cpp），因此这里看不到任何业务代码。
  */
 #include "main.h"
+#include "dma.h"
 
-#include "App/Control.hpp"
+#include "Control/Control.hpp"
 
 namespace {
-
-void JTAG_Set(uint8_t mode)
-{
-    uint32_t temp = mode;
-    temp <<= 25;
-    RCC->APB2ENR |= 1u << 0;
-    AFIO->MAPR &= 0XF8FFFFFFu;
-    AFIO->MAPR |= temp;
-}
 
 void SystemClock_Config()
 {
@@ -74,20 +66,18 @@ int main(void)
     HAL_Init();
     SystemClock_Config();
 
-    JTAG_Set(JTAG_SWD_DISABLE);   // 关 JTAG，PB3/PB4 才能当 OLED 的 I/O
-    JTAG_Set(SWD_ENABLE);         // 保留 SWD 调试口
     HAL_Delay(1000);              // 等电源与传感器稳定
     HAL_Delay(1000);
 
     MX_GPIO_Init();
+    MX_DMA_Init();                // DMA1 时钟及中断，必须先于 USART1 初始化
     MX_TIM3_Init();               // PWM 10 kHz（TIM3_CH4）
     MX_TIM4_Init();               // 编码器（TIM4，CNT 预置 10000）
-    MX_USART1_UART_Init();        // 上位机 128000
+    MX_USART1_UART_Init();        // 串口 128000，DMA 发送
     MX_ADC_Init();                // ADC1 角度 / ADC2 电池
-    MX_TIM1_Init();               // 5 ms 节拍：只置标志，不开业务
-    OLED_Init();
+    MX_TIM1_Init();               // 20 ms 节拍：只置标志，不开业务
 
     for (;;) {
-        app::Control::instance().controlLoop();   // 到 5 ms 才真正干活，否则立即返回
+        app::Control::controlLoop();   // 到 20 ms 才真正干活，否则立即返回
     }
 }

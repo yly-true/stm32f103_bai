@@ -34,20 +34,12 @@ extern "C" {
 /* USER CODE BEGIN Private defines */
 #define LED PAout(4)
 #define KEY2 PAin(2)
-#define KEY7 PAin(7)
-#define KEY11 PAin(11)
-#define KEY12 PAin(12)
 #define KEY5 PAin(5) 
 /* USER CODE END Private defines */
 
 void MX_GPIO_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-void Led_Flash(u16 time);
-u8 click(void);
-u8 Long_Press_KEY2(void);
-u8 click_N_Double (u8 time);
-u8 Long_Press(void);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

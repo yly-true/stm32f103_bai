@@ -58,36 +58,18 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define reserved_key_Pin GPIO_PIN_2
-#define reserved_key_GPIO_Port GPIOA
+#define emergency_stop_Pin GPIO_PIN_2
+#define emergency_stop_GPIO_Port GPIOA
 #define LED_Pin GPIO_PIN_4
 #define LED_GPIO_Port GPIOA
-#define User_key_Pin GPIO_PIN_5
-#define User_key_GPIO_Port GPIOA
-#define User_key_EXTI_IRQn EXTI9_5_IRQn
-#define menu_key_Pin GPIO_PIN_7
-#define menu_key_GPIO_Port GPIOA
-#define menu_key_EXTI_IRQn EXTI9_5_IRQn
+#define start_key_Pin GPIO_PIN_5
+#define start_key_GPIO_Port GPIOA
 #define PWMB_Pin GPIO_PIN_1
 #define PWMB_GPIO_Port GPIOB
 #define BIN2_Pin GPIO_PIN_12
 #define BIN2_GPIO_Port GPIOB
 #define BIN1_Pin GPIO_PIN_13
 #define BIN1_GPIO_Port GPIOB
-#define pid_plus_Pin GPIO_PIN_11
-#define pid_plus_GPIO_Port GPIOA
-#define pid_plus_EXTI_IRQn EXTI15_10_IRQn
-#define pid_reduce_Pin GPIO_PIN_12
-#define pid_reduce_GPIO_Port GPIOA
-#define pid_reduce_EXTI_IRQn EXTI15_10_IRQn
-#define OLED_DC_Pin GPIO_PIN_15
-#define OLED_DC_GPIO_Port GPIOA
-#define OLED_RSE_Pin GPIO_PIN_3
-#define OLED_RSE_GPIO_Port GPIOB
-#define OLED_SDA_Pin GPIO_PIN_4
-#define OLED_SDA_GPIO_Port GPIOB
-#define OLED_SCL_Pin GPIO_PIN_5
-#define OLED_SCL_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 //定义一些常用的数据类型短关键字 
 typedef int32_t  s32;
@@ -180,9 +162,6 @@ typedef __I uint8_t vuc8;
 #include "adc.h"
 #include "tim.h"
 #include "usart.h"
-#include "oled.h"
-#include "show.h"
-#include "DataScope_DP.h"
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

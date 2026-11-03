@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.29.6)
 
-#此文件从模板自动生成! 请勿更改!
+# 本工程唯一使用的 CMake 构建配置，保留以下工具链兼容设置。
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_VERSION 1)
 
@@ -16,7 +16,7 @@ set(CMAKE_C_FLAGS_INIT "--specs=nosys.specs")
 # project settings
 # Only the C language is enabled: enabling CXX makes CMake's compiler/binutils
 # detection crash with 0xC0000409 on this machine. The C++ application layer
-# (App/*.cpp, Core/Src/main.cpp) is therefore compiled by the C driver with
+# (App/main.cpp and App module sources) is therefore compiled by the C driver with
 # "-x c++" — see the set_source_files_properties() call further down.
 project(WHEELTEC C)
 set(CMAKE_C_STANDARD 11)
@@ -54,27 +54,22 @@ else ()
     add_compile_options(-Og -g)
 endif ()
 
-include_directories(Platform App App/Ui Drivers/OLED Drivers/STM32F1xx_HAL_Driver/Inc Drivers/STM32F1xx_HAL_Driver/Inc/Legacy Drivers/CMSIS/Device/ST/STM32F1xx/Include Drivers/CMSIS/Include .)
+include_directories(Platform App Drivers/STM32F1xx_HAL_Driver/Inc Drivers/STM32F1xx_HAL_Driver/Inc/Legacy Drivers/CMSIS/Device/ST/STM32F1xx/Include Drivers/CMSIS/Include .)
 
 add_definitions(-DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB)
 
 set(SOURCES
     App/main.cpp
-    App/Control.cpp
-    App/Balance.cpp
-    App/Keys.cpp
-    App/SwingUp.cpp
-    App/Calibration.cpp
-    App/Ui/show.c
-    App/Ui/app_view.cpp
-    App/Ui/DataScope_DP.C
+    App/Control/Control.cpp
+    App/PendulumController/PendulumController.cpp
+    App/ButtonHandler/ButtonHandler.cpp
     Platform/gpio.c
+    Platform/dma.c
     Platform/adc.c
     Platform/tim.c
     Platform/usart.c
     Platform/stm32f1xx_it.c
     Platform/stm32f1xx_hal_msp.c
-    Drivers/OLED/oled.c
     Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_gpio_ex.c
     Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_adc.c
     Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_adc_ex.c
@@ -96,24 +91,15 @@ set(SOURCES
     Platform/sysmem.c
     Platform/startup_stm32f103c8tx.s
 )
-# The vendor uses uppercase .C for C sources; GCC otherwise treats them as C++.
-set_source_files_properties(
-    App/Ui/DataScope_DP.C
-    PROPERTIES LANGUAGE C
-)
-
 # C++ application layer. Enabling the CMake CXX language reliably crashes the
 # compiler detection in this environment (exit code 0xC0000409), so .cpp files
 # are fed to the C driver with "-x c++". No STL / exceptions / RTTI are used,
 # which keeps libstdc++ out of the link.
 set(APP_CPP_FILES
     App/main.cpp
-    App/Ui/app_view.cpp
-    App/Control.cpp
-    App/Balance.cpp
-    App/Keys.cpp
-    App/SwingUp.cpp
-    App/Calibration.cpp
+    App/Control/Control.cpp
+    App/PendulumController/PendulumController.cpp
+    App/ButtonHandler/ButtonHandler.cpp
 )
 set_source_files_properties(${APP_CPP_FILES}
     PROPERTIES LANGUAGE C

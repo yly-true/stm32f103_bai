@@ -1,5 +1,5 @@
 # 构建产物
-build/
+/build/
 cmake-build-*/
 *.elf
 *.hex
@@ -10,6 +10,10 @@ cmake-build-*/
 .idea/
 .vs/
 *.iml
+/.project
+/.cproject
+/.mxproject
+*.before-build-fix
 
 # 厂商烧录工具：exe 入库，运行时生成的配置不入库
 FlyMcuConfig.ini
@@ -18,3 +22,7 @@ FlyMcuConfig.ini
 Thumbs.db
 desktop.ini
 *.log
+
+# 本机便携工具链路径（工具和下载缓存位于用户目录，不入库）
+.wt-toolchain.json
+.wt-toolchain.json.tmp
