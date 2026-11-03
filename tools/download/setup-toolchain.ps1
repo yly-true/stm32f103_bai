@@ -1,10 +1,35 @@
 ﻿<#
 .SYNOPSIS
-    Install the pinned portable Windows toolchain, then build the firmware.
+    一键配置 STM32 编译环境；默认配置完成后编译当前工程。
+.DESCRIPTION
+    支持 Windows 10/11 x64、PowerShell 5.1 或更高版本，无需管理员权限。
+    自动下载并校验 CMake、Arm GCC/G++、GNU Make，解压并验证工具版本和必要文件。
+    固定版本、官方下载地址和 SHA256 由同目录的 toolchains.psd1 定义。
+    首次需要联网；已有工具或已校验 ZIP 缓存时可以离线复用。
+    下载支持续传和 Windows 系统代理，损坏的下载包会被隔离。
+    默认安装到当前用户的 LOCALAPPDATA/WheeltecTool；中文用户名时使用 PUBLIC/WheeltecTool。
+    仅修改本次进程的 PATH，不改系统或用户 PATH；无需 Python、Conda、Keil 或 Visual Studio。
 .PARAMETER ToolsDir
-    Optional ASCII installation path. The choice is remembered for this checkout.
+    可选的工具安装目录，必须是可写的 ASCII 路径，例如 D:\WheeltecTool。
+    路径记录在工程根目录 .wt-toolchain.json，复制工程到新电脑后失效路径会被忽略。
 .PARAMETER InstallOnly
-    Install and check tools without building. Used internally by wt.ps1.
+    只安装并验证工具，不编译。编译脚本也使用此参数检查环境。
+.PARAMETER Mode
+    编译类型：Debug（默认）、Release、RelWithDebInfo 或 MinSizeRel。
+.PARAMETER Quiet
+    隐藏已有工具的检查信息；下载、解压和错误仍会显示。
+.EXAMPLE
+    .\tools\download\setup-toolchain.cmd
+    自动配置环境并完成 Debug 编译。
+.EXAMPLE
+    .\tools\download\setup-toolchain.cmd -InstallOnly
+    只配置环境；日常编译使用工程根目录的 .\wt。
+.EXAMPLE
+    .\tools\download\setup-toolchain.cmd -ToolsDir D:\WheeltecTool -Mode Release
+    在指定目录配置工具，然后完成 Release 编译。
+.EXAMPLE
+    .\tools\download\setup-toolchain.cmd -?
+    查看本脚本用法。
 #>
 [CmdletBinding()]
 param(
@@ -164,6 +189,7 @@ try {
         & (Join-Path $Root 'tools\build\wt.ps1') -Mode $Mode -Quiet:$Quiet
         exit $LASTEXITCODE
     }
+    if (-not $Quiet) { Write-Host "Toolchain ready. Run .\wt to build." }
     exit 0
 } catch {
     Write-Host ('Toolchain setup failed: ' + $_.Exception.Message) -ForegroundColor Red

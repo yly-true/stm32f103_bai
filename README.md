@@ -22,11 +22,10 @@ App/
   Hardware/              电机、编码器、ADC 和 LED 封装
 Platform/                外设初始化、中断和启动文件
 Drivers/                 HAL 与 CMSIS
-tools/                  工具目录（见下）
+tools/                   工具目录（见下）
   download/              环境下载与配置
   build/                 编译脚本
   flymcu/                串口烧录软件
-docs/                    详细说明
 build/                   自动生成的固件与缓存，不入库
 ```
 
@@ -41,7 +40,15 @@ Windows 10/11 x64，在工程目录运行：
 .\wt -Flash                # 编译后打开 FlyMcu
 ```
 
-首次需联网，无需管理员权限。也可单独运行 `.\tools\download\setup-toolchain.cmd -InstallOnly` 配置环境。
+首次需联网下载约 360 MB，无需管理员权限，也不需要预装 CMake、Python、Conda 或 IDE。脚本自动配置 **CMake、Arm GCC/G++ 和 GNU Make**，仅修改当前进程 PATH。
+
+```powershell
+.\tools\download\setup-toolchain.cmd -InstallOnly   # 只配置环境
+.\tools\download\setup-toolchain.cmd -ToolsDir D:\WheeltecTool  # 指定工具目录并编译
+.\tools\download\setup-toolchain.cmd -?             # 查看配置脚本用法
+```
+
+工具默认缓存到用户目录 `WheeltecTool`，重复运行会复用工具及已校验的 ZIP。具体版本、下载地址和校验值见 `tools/download/toolchains.psd1`。
 
 FlyMcu 烧录 `build/WHEELTEC.hex`：BOOT0=1、BOOT1=0 后复位进入 ISP；烧完将 BOOT0 改回 0，再复位运行。
 
@@ -54,5 +61,3 @@ app::Control::instance().uart1Printf("value=%d\r\n", 123);
 ```
 
 单次最多 127 字节；忙或失败返回 `-1`，不排队。当前未启用 `%f` 浮点打印。
-
-详细环境说明见 [工具链配置](docs/工具链与交叉编译配置.md)。
