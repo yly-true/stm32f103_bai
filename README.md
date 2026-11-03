@@ -85,7 +85,7 @@ cmake --build <ASCII 路径>\build --parallel
 
 ## 烧录
 
-FlyMcu 串口 ISP：
+FlyMcu 串口 ISP（仓库已附带 `FlyMcu.exe`）：
 
 1. 板子 `BOOT0=1`、`BOOT1=0`，复位进入 ISP；
 2. 选 COM 口、115200，载入 `build\WHEELTEC.hex`，勾选“编程后执行”；
