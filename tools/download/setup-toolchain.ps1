@@ -21,15 +21,6 @@
 .EXAMPLE
     .\tools\download\setup-toolchain.cmd
     自动配置环境并完成 Debug 编译。
-.EXAMPLE
-    .\tools\download\setup-toolchain.cmd -InstallOnly
-    只配置环境；日常编译使用工程根目录的 .\wt。
-.EXAMPLE
-    .\tools\download\setup-toolchain.cmd -ToolsDir D:\WheeltecTool -Mode Release
-    在指定目录配置工具，然后完成 Release 编译。
-.EXAMPLE
-    .\tools\download\setup-toolchain.cmd -?
-    查看本脚本用法。
 #>
 [CmdletBinding()]
 param(
