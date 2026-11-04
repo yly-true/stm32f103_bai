@@ -112,8 +112,12 @@ void Control::controlLoop()
 void Control::sample()
 {
     state_.encoder = hardware_.motor.position();
-    state_.angle = hardware_.adc.pendulumAngle();
-    state_.angleRate = pendulum_.updateAngleRate(state_.angle);
+
+    // ADC 原始值 → 相对竖直向上的角度（度）：0 = 竖直，正负表示倾斜方向
+    state_.angle = (hardware_.adc.pendulumAngle() - static_cast<float>(cfg::kAngleUpright)) /
+                   cfg::kAngleCountsPerDegree;
+
+    state_.angleRate = pendulum_.updateAngleRate(state_.angle);  // 度/秒
     state_.voltage = hardware_.adc.batteryMilliVolt();
 }
 

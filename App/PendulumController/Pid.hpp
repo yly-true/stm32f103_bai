@@ -1,41 +1,34 @@
 #ifndef APP_PID_HPP
 #define APP_PID_HPP
 
-#include "Control/Config.hpp"
-
-// 两个调节器，都是"纯函数 + 一点内部状态"，数值与厂家原版逐行对应。
 namespace app {
 
-// 角度环：PD，输出取反号（角度偏大 → 往负方向修正）
-class AnglePd {
+// 通用 PID：u = kp·e + ki·∫e dt + kd·de/dt，dt 单位：秒。
+// 角度环和位置环共用这一个类，只是增益和调用周期不同。
+// 微分项显式除以 dt，所以 Kd 的量纲是 "输出 / (误差/秒)"，改控制周期不用重调。
+class Pid {
 public:
-    int update(float angle, float kp, float kd) {
-        const float bias = angle - static_cast<float>(cfg::kAngleUpright);
-        const float dBias = bias - lastBias_;
-        lastBias_ = bias;
-        return static_cast<int>(-kp * bias - kd * dBias);
+    void reset() {
+        lastError_ = 0.0f;
+        integral_ = 0.0f;
     }
-    void reset() { lastBias_ = 0.0f; }
+
+    float update(float error, float kp, float ki, float kd, float dt) {
+        integral_ += error * dt;
+        if (integral_ >  kIntegralLimit) integral_ =  kIntegralLimit;
+        if (integral_ < -kIntegralLimit) integral_ = -kIntegralLimit;
+
+        const float derivative = (error - lastError_) / dt;
+        lastError_ = error;
+        return kp * error + ki * integral_ + kd * derivative;
+    }
 
 private:
-    float lastBias_ = 0.0f;
-};
+    // 积分限幅（单位：误差·秒）。两个环目前 ki = 0，积分项不参与输出。
+    static constexpr float kIntegralLimit = 1000.0f;
 
-// 位置环：先一阶低通，再 PD。每 30 ms 调用一次。
-class PositionPd {
-public:
-    int update(int encoder, int target, float kp, float kd) {
-        const float least = static_cast<float>(encoder - target);
-        bias_ = bias_ * cfg::kPositionFilterOld + least * cfg::kPositionFilterNew;
-        const float diff = bias_ - lastBias_;
-        lastBias_ = bias_;
-        return static_cast<int>(bias_ * kp + diff * kd);
-    }
-    void reset() { bias_ = 0.0f; lastBias_ = 0.0f; }
-
-private:
-    float bias_ = 0.0f;
-    float lastBias_ = 0.0f;
+    float lastError_ = 0.0f;
+    float integral_  = 0.0f;
 };
 
 } // namespace app

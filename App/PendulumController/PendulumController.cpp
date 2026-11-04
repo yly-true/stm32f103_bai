@@ -5,25 +5,24 @@ namespace app {
 float PendulumController::updateAngleRate(float angle)
 {
     if (++rateDivider_ >= cfg::kRateSampleDiv) {
-        const int delta = static_cast<int>(angle - lastAngle_);
+        const float delta = angle - lastAngle_;   // 30 ms 内的角度变化（度）
         lastAngle_ = angle;
         rateDivider_ = 0;
         for (int i = 1; i < cfg::kRateFilterLen; ++i) {
             rateBuffer_[i - 1] = rateBuffer_[i];
         }
-        rateBuffer_[cfg::kRateFilterLen - 1] = static_cast<short>(delta);
-        int sum = 0;
-        for (int value : rateBuffer_) sum += value;
-        angleRate_ = static_cast<float>(static_cast<short>(sum / cfg::kRateFilterLen));
+        rateBuffer_[cfg::kRateFilterLen - 1] = delta;
+
+        float sum = 0.0f;
+        for (float value : rateBuffer_) sum += value;
+        angleRate_ = (sum / cfg::kRateFilterLen) / cfg::kRatePeriodS;  // 度/秒
     }
     return angleRate_;
 }
 
-bool PendulumController::nearUpright(const ControlState& s, int window)
+bool PendulumController::nearUpright(const ControlState& s, float windowDeg)
 {
-    const float upright = static_cast<float>(cfg::kAngleUpright);
-    const float w = static_cast<float>(window);
-    return s.angle <= upright + w && s.angle >= upright - w;
+    return s.angle <= windowDeg && s.angle >= -windowDeg;
 }
 
 void PendulumController::clearOutput(ControlState& s)
@@ -38,8 +37,8 @@ void PendulumController::tick(ControlState& s, BoardHardware& io)
     if (s.voltage < cfg::kBatteryMinMv) {
         s.mode = RunMode::kStopped;
         clearOutput(s);
-        anglePd_.reset();
-        positionPd_.reset();
+        anglePid_.reset();
+        positionPid_.reset();
         io.motor.brake();
         return;
     }
@@ -55,9 +54,10 @@ void PendulumController::tick(ControlState& s, BoardHardware& io)
     if (s.mode == RunMode::kArmed) {
         clearOutput(s);
         io.motor.brake();
-        if (nearUpright(s, cfg::kAngleEnterWindow)) {
-            anglePd_.reset();
-            positionPd_.reset();
+        if (nearUpright(s, cfg::kBalanceEnterAngleDeg)) {
+            anglePid_.reset();
+            positionPid_.reset();
+            positionFilter_ = 0.0f;
             s.positionZero = s.encoder;  // 以当前位置为位置环原点，避免一进入就猛拉
             s.mode = RunMode::kBalancing;
         }
@@ -66,10 +66,10 @@ void PendulumController::tick(ControlState& s, BoardHardware& io)
 
     // ③ 平衡中：先判断是否已经掉出较宽的退出窗口（滞回）
     //    掉出去就回停机，必须重新按启动键，避免摆杆高速穿过窗口时被 PID 猛踢。
-    if (!nearUpright(s, cfg::kAngleExitWindow)) {
+    if (!nearUpright(s, cfg::kBalanceExitAngleDeg)) {
         clearOutput(s);
-        anglePd_.reset();
-        positionPd_.reset();
+        anglePid_.reset();
+        positionPid_.reset();
         s.mode = RunMode::kStopped;
         io.motor.brake();
         return;
@@ -80,12 +80,18 @@ void PendulumController::tick(ControlState& s, BoardHardware& io)
 
 void PendulumController::balance(ControlState& s, BoardHardware& io)
 {
-    s.balancePwm = anglePd_.update(s.angle, cfg::kBalanceKpDefault, cfg::kBalanceKdDefault);
+    // 角度环：每个 5 ms 节拍。误差单位：度；输出单位：PWM 计数。
+    s.balancePwm = static_cast<int>(
+        -anglePid_.update(s.angle, cfg::kAngleKp, 0.0f, cfg::kAngleKd, cfg::kControlPeriodS));
 
-    if (++s.divider > cfg::kPositionDivider) {
-        s.positionPwm = positionPd_.update(s.encoder, s.positionZero,
-                                           cfg::kPositionKpDefault, cfg::kPositionKdDefault);
+    // 位置环：每 30 ms 节拍。误差先过一阶低通，再交给同一个 Pid。
+    if (++s.divider >= cfg::kPositionDivider) {
         s.divider = 0;
+        const float raw = static_cast<float>(s.encoder - s.positionZero);
+        positionFilter_ += (raw - positionFilter_) * cfg::kPositionFilterAlpha;
+        s.positionPwm = static_cast<int>(
+            positionPid_.update(positionFilter_, cfg::kPositionKp, 0.0f,
+                                cfg::kPositionKd, cfg::kPositionPeriodS));
     }
 
     s.motorPwm = limit(s.balancePwm - s.positionPwm);

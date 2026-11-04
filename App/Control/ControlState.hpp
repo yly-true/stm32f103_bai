@@ -21,8 +21,8 @@ struct ControlState {
     // ---- 实时测量值 ----
     int   encoder      = 0;                 // 滑块位置（编码器脉冲）
     int   voltage      = 0;                 // 电池电压，mV
-    float angle        = 0.0f;              // 摆杆角度，ADC 原始值
-    float angleRate    = 0.0f;              // 摆杆角速度，差分×滤波
+    float angle        = 0.0f;              // 相对竖直向上的角度，度（0 = 竖直）
+    float angleRate    = 0.0f;              // 角速度，度/秒
 
     // ---- 控制量 ----
     int   motorPwm     = 0;                 // 最终输出（限幅前）
