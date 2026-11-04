@@ -1,7 +1,7 @@
 #ifndef APP_CONFIG_HPP
 #define APP_CONFIG_HPP
 
-// 控制参数沿用厂家原版；控制节拍已从 5 ms 调整为 20 ms。
+// 控制参数沿用厂家原版；控制节拍与厂家原版一致，为 5 ms。
 // 单位说明：角度都是 ADC 原始值（0~4095），位置都是编码器脉冲数。
 namespace cfg {
 
@@ -23,10 +23,11 @@ constexpr int   kPwmLimit         = 6900;   // 平衡输出上限（正负对称
 constexpr int   kBatteryMinMv     = 700;    // 7.00 V 以下停机
 
 // ---- 时序 ----
-constexpr int   kControlPeriodMs  = 20;      // TIM1 中断周期，需与 Platform/tim.c 和 WHEELTEC.ioc 同步
-constexpr int   kPositionDivider  = 5;      // 位置环使用 ++divider > 5，实际每 6 拍执行一次 = 120 ms
-constexpr int   kRateSampleDiv    = 6;      // 角速度差分周期：6 × 20 ms = 120 ms
-constexpr int   kRateFilterLen    = 4;      // 角速度滑动平均长度
+constexpr int   kControlPeriodMs  = 5;       // TIM1 中断周期，需与 Platform/tim.c 和 WHEELTEC.ioc 同步
+constexpr int   kPositionDivider  = 5;       // 位置环 ++divider > 5：每 6 拍执行一次 = 30 ms
+constexpr int   kRateSampleDiv    = 6;       // 角速度差分周期：6 × 5 ms = 30 ms
+constexpr int   kRateFilterLen    = 4;       // 角速度滑动平均长度
+constexpr int   kTelemetryDivider = 10;      // 串口上报周期：10 × 5 ms = 50 ms
 
 // ---- PID 参数 ----
 constexpr float kBalanceKpDefault = 400.0f;

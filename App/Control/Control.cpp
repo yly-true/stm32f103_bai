@@ -3,14 +3,14 @@
  * @brief   顶层控制类：采样 → 控制 → 输出 → 按键
  *
  * 时间线：
- *   TIM1 每 20 ms 置 tickPending  →  main 循环调用 controlLoop()
- * 启动键每 20 ms 消抖，软件急停每轮主循环检查；USART1 DMA/发送完成中断处理日志，SysTick 负责 HAL 毫秒计时。
+ *   TIM1 每 5 ms 置 tickPending  →  main 循环调用 controlLoop()
+ * 启动键每 5 ms 消抖，软件急停每轮主循环检查；USART1 DMA 发送日志（50 ms 一次）。
  *
  * 运行模式（ControlState.hpp 的 RunMode）：
  *   kStopped   上电/急停/低压，电机不输出
  *   kArmed     已按启动键，等摆杆进入竖直窗口，电机不输出
  *   kBalancing 竖直窗口内，PID 输出
- * 串口每 20 ms 上报一次当前模式：0=停机，1=等竖直，2=平衡中。
+ * 串口每 50 ms 上报一次当前模式：0=停机，1=等竖直，2=平衡中。
  */
 #include "Control.hpp"
 
@@ -65,7 +65,7 @@ void Control::controlLoop()
 {
     auto& control = Control::instance();
 
-    // 软件急停每轮检查，尽早清零 PWM，不等待 20 ms 控制节拍。
+    // 软件急停每轮检查，尽早清零 PWM，不等待 5 ms 控制节拍。
     if (control.buttons_.checkEmergencyStop(control.state_)) {
         control.hardware_.motor.stop();
         control.hardware_.led.off();
@@ -90,17 +90,22 @@ void Control::controlLoop()
 
     // ④ 输出与指示：电机由 PendulumController 按模式驱动，这里只管串口和 LED
     const RunMode mode = control.state_.mode;
-    control.uart1Printf("%d\r\n", static_cast<int>(mode));
     switch (mode) {
     case RunMode::kStopped:
         control.hardware_.led.off();
         break;
-    case RunMode::kArmed:          // 慢闪：等摆杆竖直
+    case RunMode::kArmed:          // 慢闪（2 s）：等摆杆竖直
+        control.hardware_.led.blink(400);
+        break;
+    case RunMode::kBalancing:      // 快闪（0.5 s）：PID 平衡中
         control.hardware_.led.blink(100);
         break;
-    case RunMode::kBalancing:      // 快闪：PID 平衡中
-        control.hardware_.led.blink(25);
-        break;
+    }
+
+    // 串口按 50 ms 上报，避免 5 ms 节拍把 DMA 占满
+    if (++control.telemetryDivider_ >= cfg::kTelemetryDivider) {
+        control.telemetryDivider_ = 0;
+        control.uart1Printf("%d\r\n", static_cast<int>(mode));
     }
 }
 

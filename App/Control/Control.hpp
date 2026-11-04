@@ -9,7 +9,7 @@
 namespace app {
 
 // 顶层控制类：main() 里只需要反复调用 controlLoop()。
-//   - 每个 20 ms 节拍：按键扫描 → 采样 → 按模式控制 → 输出指示
+//   - 每个 5 ms 节拍：按键扫描 → 采样 → 按模式控制 → 输出指示
 // 状态（ControlState）和硬件（BoardHardware）都是它的私有成员，外部只能通过 controlLoop()
 // 和中断节拍入口接触它。
 class Control {
@@ -36,6 +36,7 @@ private:
     PendulumController pendulum_;
     ButtonHandler      buttons_;
     char               uart1TxBuffer_[128] = {};  // DMA 完成前持续有效
+    uint16_t           telemetryDivider_ = 0;     // 串口上报分频（50 ms 一次）
 };
 
 } // namespace app

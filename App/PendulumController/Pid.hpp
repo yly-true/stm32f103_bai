@@ -21,7 +21,7 @@ private:
     float lastBias_ = 0.0f;
 };
 
-// 位置环：先一阶低通，再 PD。每 120 ms 调用一次。
+// 位置环：先一阶低通，再 PD。每 30 ms 调用一次。
 class PositionPd {
 public:
     int update(int encoder, int target, float kp, float kd) {

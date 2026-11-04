@@ -35,7 +35,7 @@ struct ControlState {
     RunMode mode = RunMode::kStopped;
 
     // ---- 中断 → 主循环的信号 ----
-    volatile uint8_t  tickPending = 0;      // TIM1 每 20 ms 置 1
+    volatile uint8_t  tickPending = 0;      // TIM1 每 5 ms 置 1
 };
 
 } // namespace app

@@ -75,9 +75,9 @@ int main(void)
     MX_TIM4_Init();               // 编码器（TIM4，CNT 预置 10000）
     MX_USART1_UART_Init();        // 串口 128000，DMA 发送
     MX_ADC_Init();                // ADC1 角度 / ADC2 电池
-    MX_TIM1_Init();               // 20 ms 节拍：只置标志，不开业务
+    MX_TIM1_Init();               // 5 ms 节拍：只置标志，不开业务
 
     for (;;) {
-        app::Control::controlLoop();   // 到 20 ms 才真正干活，否则立即返回
+        app::Control::controlLoop();   // 到 5 ms 才真正干活，否则立即返回
     }
 }
