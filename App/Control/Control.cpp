@@ -5,6 +5,12 @@
  * 时间线：
  *   TIM1 每 20 ms 置 tickPending  →  main 循环调用 controlLoop()
  * 启动键每 20 ms 消抖，软件急停每轮主循环检查；USART1 DMA/发送完成中断处理日志，SysTick 负责 HAL 毫秒计时。
+ *
+ * 运行模式（ControlState.hpp 的 RunMode）：
+ *   kStopped   上电/急停/低压，电机不输出
+ *   kArmed     已按启动键，等摆杆进入竖直窗口，电机不输出
+ *   kBalancing 竖直窗口内，PID 输出
+ * 串口每 20 ms 上报一次当前模式：0=停机，1=等竖直，2=平衡中。
  */
 #include "Control.hpp"
 
@@ -80,15 +86,21 @@ void Control::controlLoop()
         control.hardware_.led.off();
         return;
     }
-    control.pendulum_.tick(control.state_, control.hardware_);  // ③ 手动平衡 / 自动起摆
+    control.pendulum_.tick(control.state_, control.hardware_);  // ③ 按模式驱动电机
 
-    // ④ 输出与指示
-    control.uart1Printf("%d\r\n", control.state_.stopped ? 1 : 0);
-    if (control.state_.stopped) {
-        control.hardware_.motor.stop();
+    // ④ 输出与指示：电机由 PendulumController 按模式驱动，这里只管串口和 LED
+    const RunMode mode = control.state_.mode;
+    control.uart1Printf("%d\r\n", static_cast<int>(mode));
+    switch (mode) {
+    case RunMode::kStopped:
         control.hardware_.led.off();
-    } else {
+        break;
+    case RunMode::kArmed:          // 慢闪：等摆杆竖直
         control.hardware_.led.blink(100);
+        break;
+    case RunMode::kBalancing:      // 快闪：PID 平衡中
+        control.hardware_.led.blink(25);
+        break;
     }
 }
 

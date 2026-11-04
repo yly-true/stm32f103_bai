@@ -6,6 +6,16 @@
 
 namespace app {
 
+// 运行模式：只有 kBalancing 会输出 PWM，另外两种模式电机都自由滑行。
+//   kStopped ──按启动键──▶ kArmed ──摆进竖直窗口(±300)──▶ kBalancing
+//       ▲                                                   │
+//       └──────急停 / 低压 / 掉出窗口(±600)，需重新按键──────┘
+enum class RunMode : uint8_t {
+    kStopped   = 0,  // 上电默认 / 急停 / 低压：不输出，等用户按键
+    kArmed     = 1,  // 已按启动键，等摆杆进入竖直窗口；电机不输出，可手动扶摆
+    kBalancing = 2,  // 摆杆在竖直窗口内：角度环 + 位置环 PID 输出
+};
+
 // 整个系统共享的运行状态。
 struct ControlState {
     // ---- 实时测量值 ----
@@ -18,19 +28,11 @@ struct ControlState {
     int   motorPwm     = 0;                 // 最终输出（限幅前）
     int   balancePwm   = 0;                 // 角度环输出
     int   positionPwm  = 0;                 // 位置环输出
-    int   positionZero = cfg::kEncoderPowerOn; // 位置环目标值
+    int   positionZero = cfg::kEncoderPowerOn; // 位置环目标值，进入平衡时取当前位置
     int   divider      = 0;                 // 位置环分频计数
 
-    // ---- 模式与保护 ----
-    bool  stopped      = true;              // 上电默认停机，等用户按键
-    bool  autoRun      = false;             // 代码配置：true 自动起摆；false 手动平衡
-    bool  swingUpFresh = true;              // 为 false 时平衡环重新取目标位置
-
-    // ---- PID 系数：初值来自 Config，起摆接管时由算法调整 ----
-    float balanceKp = cfg::kBalanceKpDefault;
-    float balanceKd = cfg::kBalanceKdDefault;
-    float positionKp = cfg::kPositionKpDefault;
-    float positionKd = cfg::kPositionKdDefault;
+    // ---- 模式 ----
+    RunMode mode = RunMode::kStopped;
 
     // ---- 中断 → 主循环的信号 ----
     volatile uint8_t  tickPending = 0;      // TIM1 每 20 ms 置 1

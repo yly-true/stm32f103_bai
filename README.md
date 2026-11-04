@@ -4,10 +4,26 @@ WHEELTEC IP570 固件，基于 STM32F103C8T6、HAL 和 C++17。TIM1 提供 **20 
 
 ## 使用
 
-- **PA5：启动**。上电默认停机，先松开再按下启动键。
-- **PA2：软件急停**。清零 PWM 并保持停机；松开后需重新按启动键，急停优先。
-- 默认**手动平衡**；自动起摆代码保留，在 `App/Control/ControlState.hpp` 中设置 `autoRun`。
-- 已移除菜单、PID 按键调参、单双击、长按和 OLED 功能。
+- **PA5：启动/解锁**。上电默认停机，先松开再按下启动键。
+- **PA2：软件急停**。清零 PWM 并回到停机；松开后需重新按启动键，急停优先。
+- 已移除自动起摆、菜单、PID 按键调参、单双击、长按和 OLED 功能。
+
+## 运行模式
+
+状态机只有三态（`App/Control/ControlState.hpp` 的 `RunMode`）：
+
+```text
+kStopped ──按启动键──▶ kArmed ──摆进竖直窗口 ±300──▶ kBalancing
+    ▲                                                   │
+    └───────急停 / 低压 / 掉出窗口 ±600（需重新按键）────┘
+```
+
+- **kStopped**：上电/急停/低压，电机不输出（自由滑行）。
+- **kArmed**：已按启动键，等待摆杆进入竖直窗口；电机不输出，可以手动把摆杆扶到竖直。
+- **kBalancing**：`|angle - 3100| ≤ 300` 才进入，角度环 + 位置环输出；`|angle - 3100| > 600` 退出并回到 kStopped，需要重新按启动键。
+  两个窗口宽度在 `App/Control/Config.hpp` 的 `kAngleEnterWindow` / `kAngleExitWindow` 中修改。
+
+进入平衡时位置环目标取当前滑块位置，不会一接管就把滑块拽回中点。低压（< 7.00 V）在任何模式下都直接回停机。
 
 软件急停受主循环耗时影响，不等同于硬件断电急停。当前参数尚需上板验证。
 
@@ -17,7 +33,7 @@ WHEELTEC IP570 固件，基于 STM32F103C8T6、HAL 和 C++17。TIM1 提供 **20 
 App/
   main.cpp               外设初始化与主循环
   Control/               顶层调度、运行状态和参数
-  PendulumController/    平衡、自动起摆、角速度估计及 PID
+  PendulumController/    竖直窗口判定、平衡 PID 及角速度估计
   ButtonHandler/         启动与软件急停
   Hardware/              电机、编码器、ADC 和 LED 封装
 Platform/                外设初始化、中断和启动文件
@@ -60,3 +76,5 @@ app::Control::instance().uart1Printf("value=%d\r\n", 123);
 ```
 
 单次最多 127 字节；忙或失败返回 `-1`，不排队。当前未启用 `%f` 浮点打印。
+
+主循环每 20 ms 上报一次运行模式：`0` 停机、`1` 等竖直、`2` 平衡中。

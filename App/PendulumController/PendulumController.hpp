@@ -7,24 +7,25 @@
 
 namespace app {
 
-// 摆杆控制：角速度估计、手动平衡和自动起摆。
-// 自动起摆过程：
-//   第 0 步 Find_Zero —— 把滑块拉回轨道中间，等摆杆静止在"竖直向下"
-//   第 1 步 Auto_run  —— 先来回甩杆积累能量，判定能站住后切平衡控制并爬升 PID
+// 摆杆控制：角速度估计 + 竖直窗口内的平衡 PID。
+// 状态机只有三态（见 ControlState.hpp 的 RunMode）：
+//   kStopped   —— 不输出，等启动键
+//   kArmed     —— 已启动，等摆杆进入竖直窗口；电机不输出，可以手动扶摆
+//   kBalancing —— 竖直窗口内，角度环 + 位置环 PID 输出
+// 进入窗口用 ±kAngleEnterWindow，退出用更宽的 ±kAngleExitWindow，形成滞回；
+// 掉出窗口即回 kStopped，需要重新按启动键。
 class PendulumController {
 public:
     void tick(ControlState& s, BoardHardware& io);
     float updateAngleRate(float angle);
 
 private:
-    void updateBalance(ControlState& s, BoardHardware& io);
-    void protect(ControlState& s, const BoardHardware& io) const;
-    void updateSwingUp(ControlState& s, BoardHardware& io);
-    void findZero(ControlState& s);
-    void autoRun(ControlState& s, BoardHardware& io);
+    static bool nearUpright(const ControlState& s, int window);
+    static void clearOutput(ControlState& s);
+    void balance(ControlState& s, BoardHardware& io);
     static int limit(int pwm, int upper = cfg::kPwmLimit, int lower = cfg::kPwmLimit);
 
-    // 两种控制模式共享同一组 PD 历史。
+    // 角度环与位置环共享同一个对象的 PD 历史，切换模式时 reset()。
     AnglePd anglePd_;
     PositionPd positionPd_;
 
@@ -33,26 +34,6 @@ private:
     float lastAngle_ = 0.0f;
     float angleRate_ = 0.0f;
     short rateBuffer_[cfg::kRateFilterLen] = {};
-
-    // 第 0 步
-    bool  step0Done_ = false;
-    bool  step1Active_ = false;
-    float settleCount_ = 0.0f;
-    int   targetPosition_ = cfg::kPositionMiddle;
-
-    // 第 1 步（甩杆）
-    IncrementalPi   incrementalPi_;
-    PrePositionPd   prePosition_;
-    bool  directionLeft_ = false;
-    bool  directionRight_ = false;
-    int   speed_ = 0;
-    long  successCount_ = 0;
-
-    // 第 1 步（起摆成功后的接管与参数爬升）
-    bool  successFlag_ = false;
-    long  waitCount_ = 0;
-    int   helpCount_ = 0;
-    long  pidAdjust_ = 0;
 };
 
 } // namespace app

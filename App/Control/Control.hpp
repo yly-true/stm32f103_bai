@@ -9,7 +9,7 @@
 namespace app {
 
 // 顶层控制类：main() 里只需要反复调用 controlLoop()。
-//   - 每个 20 ms 节拍：采样 → 保护/控制 → 输出 → 按键扫描
+//   - 每个 20 ms 节拍：按键扫描 → 采样 → 按模式控制 → 输出指示
 // 状态（ControlState）和硬件（BoardHardware）都是它的私有成员，外部只能通过 controlLoop()
 // 和中断节拍入口接触它。
 class Control {

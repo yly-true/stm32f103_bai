@@ -3,7 +3,7 @@
 
 #include "Control/Config.hpp"
 
-// 四个调节器，全部是"纯函数 + 一点内部状态"，数值与厂家原版逐行对应。
+// 两个调节器，都是"纯函数 + 一点内部状态"，数值与厂家原版逐行对应。
 namespace app {
 
 // 角度环：PD，输出取反号（角度偏大 → 往负方向修正）
@@ -35,37 +35,6 @@ public:
 
 private:
     float bias_ = 0.0f;
-    float lastBias_ = 0.0f;
-};
-
-// 增量式 PI：只在起摆归中阶段做位置闭环
-class IncrementalPi {
-public:
-    int update(int encoder, int target) {
-        const float bias = static_cast<float>(encoder - target);
-        pwm_ += 10.0f * (bias - lastBias_) / 20.0f + 10.0f * bias / 20.0f;
-        lastBias_ = bias;
-        return static_cast<int>(pwm_);
-    }
-    void reset() { pwm_ = 0.0f; lastBias_ = 0.0f; }
-
-private:
-    float pwm_ = 0.0f;
-    float lastBias_ = 0.0f;
-};
-
-// 顺摆位置 PD：起摆归中阶段用，系数固定 25 / 600
-class PrePositionPd {
-public:
-    int update(int encoder, int target) {
-        const float bias = static_cast<float>(encoder - target);
-        const float diff = bias - lastBias_;
-        lastBias_ = bias;
-        return static_cast<int>(bias * 25.0f + diff * 600.0f);
-    }
-    void reset() { lastBias_ = 0.0f; }
-
-private:
     float lastBias_ = 0.0f;
 };
 
