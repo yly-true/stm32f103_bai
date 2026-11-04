@@ -83,6 +83,7 @@ void Control::controlLoop()
     control.pendulum_.tick(control.state_, control.hardware_);  // ③ 手动平衡 / 自动起摆
 
     // ④ 输出与指示
+    control.uart1Printf("%d\r\n", control.state_.stopped ? 1 : 0);
     if (control.state_.stopped) {
         control.hardware_.motor.stop();
         control.hardware_.led.off();

@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     一键下载并配置 STM32 编译环境，不执行编译。
 .DESCRIPTION
@@ -79,8 +79,14 @@ function Get-Archive($Package, [string]$CacheDir) {
         if (-not $env:HTTPS_PROXY -and -not $env:ALL_PROXY) {
             $proxy = [Net.WebRequest]::DefaultWebProxy
             $uri = [uri]$Package.Url
+            # .NET's HttpWindowsProxy reports the URL as not bypassed even when
+            # it then returns no proxy at all, so treat a missing/same URI as
+            # "direct connection" instead of assuming GetProxy() has a value.
             if ($proxy -and -not $proxy.IsBypassed($uri)) {
-                $curlArgs += @('--proxy', $proxy.GetProxy($uri).AbsoluteUri)
+                $proxyUri = $proxy.GetProxy($uri)
+                if ($proxyUri -and $proxyUri.AbsoluteUri -ne $uri.AbsoluteUri) {
+                    $curlArgs += @('--proxy', $proxyUri.AbsoluteUri)
+                }
             }
         }
         $downloadCode = Invoke-CurlDownload ($curlArgs + @($Package.Url))
