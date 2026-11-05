@@ -28,7 +28,7 @@ struct ControlState {
     int   motorPwm     = 0;                 // 最终输出（限幅前）
     int   balancePwm   = 0;                 // 角度环输出
     int   positionPwm  = 0;                 // 位置环输出
-    int   positionZero = cfg::kEncoderPowerOn; // 位置环目标值，进入平衡时取当前位置
+    int   positionZero = cfg::kPositionZeroFixed; // 位置环目标值，进入平衡时取固定值
     int   divider      = 0;                 // 位置环分频计数
 
     // ---- 模式 ----

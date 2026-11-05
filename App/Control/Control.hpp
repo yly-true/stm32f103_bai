@@ -29,7 +29,10 @@ public:
     int uart1Printf(const char* format, ...);
 
 private:
+    bool handleEmergencyStop();
     void sample();
+    void updateIndicators();
+    void sendTelemetry();
 
     ControlState       state_;
     BoardHardware      hardware_;

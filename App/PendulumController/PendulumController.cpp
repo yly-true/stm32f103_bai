@@ -57,8 +57,10 @@ void PendulumController::tick(ControlState& s, BoardHardware& io)
         if (nearUpright(s, cfg::kBalanceEnterAngleDeg)) {
             anglePid_.reset();
             positionPid_.reset();
+            // 对齐官方：以进入平衡时的位置为目标，误差从 0 起步。
+            // 这样位置环在启动瞬间不起作用，可以直接判断"往一边跑"是否来自位置环。
+            s.positionZero = s.encoder;
             positionFilter_ = 0.0f;
-            s.positionZero = s.encoder;  // 以当前位置为位置环原点，避免一进入就猛拉
             s.mode = RunMode::kBalancing;
         }
         return;
@@ -94,6 +96,8 @@ void PendulumController::balance(ControlState& s, BoardHardware& io)
                                 cfg::kPositionKd, cfg::kPositionPeriodS));
     }
 
+    // 与官方一致：Moto = Balance_Pwm - Position_Pwm。
+    // 位置误差使用相对上电位置的坐标；位置环增益在 Config.hpp 中配置。
     s.motorPwm = limit(s.balancePwm - s.positionPwm);
     io.motor.setPwm(s.motorPwm);
 }

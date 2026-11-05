@@ -1,6 +1,6 @@
 /**
  * @file    Control.cpp
- * @brief   顶层控制类：采样 → 控制 → 输出 → 按键
+ * @brief   顶层控制类：按键 → 采样 → 控制 → 状态输出
  *
  * 时间线：
  *   TIM1 每 5 ms 置 tickPending  →  main 循环调用 controlLoop()
@@ -10,7 +10,7 @@
  *   kStopped   上电/急停/低压，电机不输出
  *   kArmed     已按启动键，等摆杆进入竖直窗口，电机不输出
  *   kBalancing 竖直窗口内，PID 输出
- * 串口每 50 ms 上报一次当前模式：0=停机，1=等竖直，2=平衡中。
+ * 串口每 50 ms 上报编码器、角度环 PWM、位置环 PWM 和角度。
  */
 #include "Control.hpp"
 
@@ -66,52 +66,59 @@ void Control::controlLoop()
     auto& control = Control::instance();
 
     // 软件急停每轮检查，尽早清零 PWM，不等待 5 ms 控制节拍。
-    if (control.buttons_.checkEmergencyStop(control.state_)) {
-        control.hardware_.motor.stop();
-        control.hardware_.led.off();
-    }
+    control.handleEmergencyStop();
 
-    // 没有新节拍就直接返回，main 的循环会一直转
-    if (!control.state_.tickPending) {
-        return;
-    }
+    if (!control.state_.tickPending) return;
     control.state_.tickPending = 0;
 
-    control.buttons_.scan(control.state_);  // ① 启动键消抖，急停优先
-    control.sample();                      // ② 采样
+    control.buttons_.scan(control.state_);
+    control.sample();
 
     // ADC 采样期间也可能按下急停，输出前再确认一次。
-    if (control.buttons_.checkEmergencyStop(control.state_)) {
-        control.hardware_.motor.stop();
-        control.hardware_.led.off();
-        return;
-    }
-    control.pendulum_.tick(control.state_, control.hardware_);  // ③ 按模式驱动电机
+    if (control.handleEmergencyStop()) return;
+    control.pendulum_.tick(control.state_, control.hardware_);
+    control.updateIndicators();
+    control.sendTelemetry();
+}
 
-    // ④ 输出与指示：电机由 PendulumController 按模式驱动，这里只管串口和 LED
-    const RunMode mode = control.state_.mode;
-    switch (mode) {
+bool Control::handleEmergencyStop()
+{
+    if (!buttons_.checkEmergencyStop(state_)) return false;
+    hardware_.motor.stop();
+    hardware_.led.off();
+    return true;
+}
+
+void Control::updateIndicators()
+{
+    switch (state_.mode) {
     case RunMode::kStopped:
-        control.hardware_.led.off();
+        hardware_.led.off();
         break;
     case RunMode::kArmed:          // 慢闪（2 s）：等摆杆竖直
-        control.hardware_.led.blink(400);
+        hardware_.led.blink(400);
         break;
     case RunMode::kBalancing:      // 快闪（0.5 s）：PID 平衡中
-        control.hardware_.led.blink(100);
+        hardware_.led.blink(100);
         break;
     }
+}
 
+void Control::sendTelemetry()
+{
     // 串口按 50 ms 上报，避免 5 ms 节拍把 DMA 占满
-    if (++control.telemetryDivider_ >= cfg::kTelemetryDivider) {
-        control.telemetryDivider_ = 0;
-        control.uart1Printf("%d\r\n", static_cast<int>(mode));
+    if (++telemetryDivider_ >= cfg::kTelemetryDivider) {
+        telemetryDivider_ = 0;
+        // 调试用：encoder, balancePwm, positionPwm, angle（逗号分隔，FireWater 画四条线）
+        uart1Printf("%d,%d,%d,%.1f,%d\r\n", state_.encoder,
+                    state_.balancePwm, state_.positionPwm, state_.angle, state_.positionZero);
     }
 }
 
 void Control::sample()
 {
-    state_.encoder = hardware_.motor.position();
+    // 以上电位置为零点，保留原始编码器计数的增减方向。
+    state_.encoder = hardware_.motor.position() - cfg::kEncoderPowerOn;
 
     // ADC 原始值 → 相对竖直向上的角度（度）：0 = 竖直，正负表示倾斜方向
     state_.angle = (hardware_.adc.pendulumAngle() - static_cast<float>(cfg::kAngleUpright)) /
