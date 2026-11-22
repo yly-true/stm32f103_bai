@@ -102,3 +102,5 @@ app::Control::instance().uart1Printf("value=%d\r\n", 123);
 单次最多 127 字节；忙或失败返回 `-1`，不排队。当前未启用 `%f` 浮点打印。
 
 主循环每 50 ms 上报一次运行模式：`0` 停机、`1` 等竖直、`2` 平衡中。
+
+独立自动起摆、四状态稳摆和 SRAM 复现实验见 [第 49 轮实验说明](experiments/round49/README.md)。
